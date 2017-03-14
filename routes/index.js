@@ -1,6 +1,18 @@
 module.exports = function (io) {
     var express = require('express');
     var router = express.Router();
+    var mongoose = require('mongoose');
+    mongoose.Promise = global.Promise;
+
+    mongoose.connect('mongodb://localhost/sampleGame');
+    var schema = mongoose.Schema;
+
+
+    var leaderboardSchema = new schema({
+        name : {type: String},
+        time : {type: Number}
+    });
+    var leaderboard = mongoose.model('leaderboard', leaderboardSchema);
 
     /* GET home page. */
     var count = 0;
@@ -53,13 +65,31 @@ module.exports = function (io) {
             });
         });
 
-        socket.on('leaderboard', function (data) {
+        var resultArray = [];
+        var tempArray = [];
+        socket.on('reqLB', function (data) {
+            leaderboard.find({}, function (err, result) {
+                tempArray = result.sort( function(a,b){ return a.time - b.time } );
+                for(var i = 0; i < tempArray.length; i++){
+                    resultArray.push({ name : tempArray[i].name, time : tempArray[i].time});
+                }
+                socket.emit('getLeaderboard', resultArray);
+            });
+        });
 
+        socket.on('setLeaderboard', function (data) {
+            var addName = new leaderboard({
+                name : data.playerWon,
+                time : data.time
+            });
+            addName.save(function (err, name) {
+                if(err) console.log(err);
+                else console.log('done');
+            });
         });
 
         socket.on('closeConnection', function (data) {
             socket.leave("room-"+data.roomNo);
-            socket.disconnect();
         });
 
         socket.on('disconnect', function () {

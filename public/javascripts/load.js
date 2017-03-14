@@ -16,6 +16,10 @@ var loadState = {
         game.load.image('clouds', 'assets/background/10_distant_clouds.png');
         game.load.image('selector', 'assets/selector.png');
         game.load.image('trophy', 'assets/trophy.png');
+        game.load.image('fullScreen', 'assets/fullScreen.png');
+        game.load.image('playButton', 'assets/playButton.png');
+        game.load.image('restartButton', 'assets/restart.png');
+        game.load.image('leaderboardButton', 'assets/leaderboard.png');
         game.load.image('obstacle', 'assets/obstacle.png');
         game.load.atlas('control', 'assets/arrowKeys.png', 'assets/arrowKeys.json');
         game.load.atlas('vehicle', 'assets/charater/vehicle.png', 'assets/charater/vehicle.json');

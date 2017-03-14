@@ -4,7 +4,6 @@ var desktopPlayState = {
 
         game.scale.fullScreenScaleMode = Phaser.ScaleManager.EXACT_FIT;
 
-        game.input.onDown.add(this.gofull, this);
 
         startTime = new Date();
 
@@ -154,6 +153,10 @@ var desktopPlayState = {
         ground_line.body.immovable = true;
 
 
+        var fullscreen = game.add.button((game.width*95)/100, (game.height*0)/100, 'fullScreen', this.gofull);
+        fullscreen.scale.setTo(0.15, 0.15);
+
+
         gameTime = game.add.text((game.width*10)/100, (game.height*10)/100, '', {
             font: '30px Arial', fill: '#ffffff'
         });
@@ -167,13 +170,9 @@ var desktopPlayState = {
         });
 
         if(!game.device.desktop){
-            leftArrow = game.add.sprite((game.width*85)/100, (game.height*85)/100, 'control', 'sprite4');
-            leftArrow.scale.setTo(0.75, 0.75);
-            leftArrow.inputEnabled = true;
-
-            rightArrow = game.add.sprite((game.width*5)/100, (game.height*85)/100, 'control', 'sprite2');
-            rightArrow.scale.setTo(0.75, 0.75);
-            rightArrow.inputEnabled = true;
+            upArrow = game.add.button((game.width*50)/100, (game.height*85)/100, 'control', this.mobileJump);
+            upArrow.scale.setTo(1, 0.75);
+            upArrow.frameName = 'sprite1';
         }
 
         enemyXposition = opp.body.x;
@@ -194,10 +193,11 @@ var desktopPlayState = {
             }
         });
 
+        pRun = false;
+        pjRun = false;
+
     },
 
-
-    counter : false,
     run_switch : true,
 
 
@@ -213,7 +213,7 @@ var desktopPlayState = {
         timeExpelled = t/1000;
         gameTime.text = timeExpelled + ' sec';
 
-        var hitPlatform = game.physics.arcade.collide(dude, ground_line);
+        hitPlatform = game.physics.arcade.collide(dude, ground_line);
         game.physics.arcade.collide(opp, ground_line);
         game.physics.arcade.collide(trophy, ground_line);
         game.physics.arcade.collide(obstacle, ground_line);
@@ -246,10 +246,8 @@ var desktopPlayState = {
         });
 
 
-        if(this.counter){
-            this.parallax_mid_far((game.width*8)/100);
-            this.parallax_near((game.width*15)/100);
-        }
+        this.parallax_mid_far((game.width*8)/100);
+        this.parallax_near((game.width*15)/100);
 
         if(spacekey.isDown && dude.body.touching.down && hitPlatform) {
             dude.body.velocity.y = -400;
@@ -261,32 +259,39 @@ var desktopPlayState = {
             {
                 dude.body.x += (game.width*2)/100;
                 this.run_switch = false;
-                this.counter = true;
             }else if(leftkey.isDown && !this.run_switch && !rightkey.isDown){
                 dude.body.x += (game.width*2)/100;
                 this.run_switch = true;
             }
-            else {
-                dude.body.velocity.x = -(game.width*15)/100;
-                opp.body.velocity.x = -(game.width*15)/100;
-            }
         }
+
+        if(pRun){
+            dude.body.x += (game.width*2)/100;
+            pRun = false;
+        }
+        if(pjRun){
+            dude.body.x += (game.width*4)/100;
+            pjRun = false;
+        }
+
+        game.input.onDown.add(this.mRun, this);
+
+        dude.body.velocity.x = -(game.width*15)/100;
+        opp.body.velocity.x = -(game.width*15)/100;
 
         this.parallax_far((game.width*2)/100);
     },
-
+    mRun : function () {
+        pRun = true;
+    },
     playerTrophyCollected: function(dude, trophy) {
         trophy.kill();
-        this.gameComplete(name);
+        socket.emit('setLeaderboard', {playerWon: name, time : timeExpelled});
         game.state.start('playerWin');
     },
     enemyTrophyCollected: function(dude, trophy) {
         trophy.kill();
-        this.gameComplete(enemyName);
         game.state.start('enemyWin');
-    },
-    gameComplete: function (name) {
-        socket.emit('leaderboard', {playerWon: name, time : timeExpelled});
     },
     playerHitObstacle: function (dude, obstacle) {
         dude.reset((game.width*10)/100, (game.height*50)/100);
@@ -294,7 +299,6 @@ var desktopPlayState = {
     enemyHitObstacle: function (opp, obstacle) {
         opp.reset((game.width*10)/100, (game.height*50)/100);
     },
-
     parallax_near: function (speed) {
 
         var speed1 = (speed*50)/100;
@@ -357,7 +361,6 @@ var desktopPlayState = {
         }
         //ground end
     },
-
     parallax_mid_far: function (speed) {
 
         var speed1 = (speed*60)/100;
@@ -383,7 +386,6 @@ var desktopPlayState = {
             nhill_t2.body.x = game.width;
         }
     },
-
     parallax_far: function (speed){
         fcloud_t1.body.velocity.x = -(speed - 10);
         fcloud_t2.body.velocity.x = -(speed - 10);
@@ -406,37 +408,14 @@ var desktopPlayState = {
         }
     },
 
-    parallax_stop: function () {
-        fhill_t1.body.velocity.x = 0;
-        fhill_t2.body.velocity.x = 0;
-
-        nhill_t1.body.velocity.x = 0;
-        nhill_t2.body.velocity.x = 0;
-
-        ftrees1.body.velocity.x = 0;
-        ftrees2.body.velocity.x = 0;
-
-        bushes1.body.velocity.x = 0;
-        bushes2.body.velocity.x = 0;
-
-        ntrees1.body.velocity.x = 0;
-        ntrees2.body.velocity.x = 0;
-
-        ground1.body.velocity.x = 0;
-        ground2.body.velocity.x = 0;
-
+    mobileJump: function () {
+        if(hitPlatform){
+            pjRun = true;
+            dude.body.velocity.y = -400;
+        }
     },
-
-    gofull: function () {
-
-        if (game.scale.isFullScreen)
-        {
-            game.scale.stopFullScreen();
-        }
-        else
-        {
-            game.scale.startFullScreen(false);
-        }
-
+    gofull: function() {
+        if (game.scale.isFullScreen) game.scale.stopFullScreen();
+        else game.scale.startFullScreen(false);
     }
 };
